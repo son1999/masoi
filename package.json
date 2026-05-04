@@ -1,0 +1,16 @@
+{
+  "name": "ma-soi",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream dev",
+    "dev:server": "pnpm --filter @ma-soi/server dev",
+    "dev:web": "pnpm --filter @ma-soi/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@ma-soi/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "build": "tsc",
+    "start": "node --env-file=.env dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@ma-soi/shared": "workspace:*",
+    "fastify": "^5.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "livekit-server-sdk": "^2.9.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
