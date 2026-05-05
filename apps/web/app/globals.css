@@ -163,3 +163,189 @@ body {
   30%  { transform: translateY(-20%); opacity: 1; }
   100% { transform: translateY(20%); opacity: 0.4; }
 }
+
+/* ===== Wolf vignette (night_wolves) ===== */
+
+.phase-vignette-wolf {
+  position: fixed;
+  inset: 0;
+  z-index: -8;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(120, 0, 0, 0.42) 100%);
+  animation: wolf-pulse 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes wolf-pulse {
+  0%   { opacity: 0.45; }
+  100% { opacity: 0.95; }
+}
+
+/* ===== Bats flying (night) ===== */
+
+.phase-bats {
+  position: fixed;
+  inset: 0;
+  z-index: -8;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.phase-bats span {
+  position: absolute;
+  font-size: 18px;
+  opacity: 0.7;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
+  animation: bat-fly 16s linear infinite;
+}
+
+.phase-bats span:nth-child(1) { top: 22%; animation-duration: 14s; animation-delay: 0s;  font-size: 16px; }
+.phase-bats span:nth-child(2) { top: 38%; animation-duration: 18s; animation-delay: -4s; font-size: 22px; }
+.phase-bats span:nth-child(3) { top: 14%; animation-duration: 20s; animation-delay: -9s; font-size: 14px; }
+.phase-bats span:nth-child(4) { top: 48%; animation-duration: 16s; animation-delay: -12s; font-size: 20px; }
+
+@keyframes bat-fly {
+  0%   { transform: translate(-15vw, 0) scale(0.85) rotate(-6deg); }
+  25%  { transform: translate(25vw, -20px) scale(0.95) rotate(4deg); }
+  50%  { transform: translate(50vw, 10px) scale(1)    rotate(-3deg); }
+  75%  { transform: translate(75vw, -15px) scale(0.9) rotate(5deg); }
+  100% { transform: translate(115vw, 0)   scale(0.85) rotate(-6deg); }
+}
+
+/* ===== Critical countdown shake ===== */
+
+.shake-soft {
+  animation: shake-soft 0.45s cubic-bezier(.36,.07,.19,.97) infinite;
+}
+
+@keyframes shake-soft {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-3px); }
+  40%      { transform: translateX(3px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+
+/* ===== Death pop overlay ===== */
+
+.death-pop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: death-pop 1800ms ease-out forwards;
+}
+
+.death-pop::before {
+  content: '💀';
+  font-size: 200px;
+  filter: drop-shadow(0 0 40px rgba(255, 30, 30, 0.85));
+}
+
+@keyframes death-pop {
+  0%   { opacity: 0; transform: scale(0.3); }
+  20%  { opacity: 1; transform: scale(1.15); }
+  60%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.4); }
+}
+
+/* ===== Sparkle (seer reveal) ===== */
+
+.sparkle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  pointer-events: none;
+}
+
+.sparkle-overlay span {
+  position: absolute;
+  font-size: 24px;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(125, 211, 252, 0.9));
+  animation: sparkle-pop 1600ms ease-out forwards;
+}
+
+@keyframes sparkle-pop {
+  0%   { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  30%  { opacity: 1; transform: scale(1.2) rotate(20deg); }
+  70%  { opacity: 1; transform: scale(1) rotate(-10deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(20deg); }
+}
+
+/* ===== Color flash (heal / poison) ===== */
+
+.color-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 64;
+  pointer-events: none;
+  animation: color-flash 1200ms ease-out forwards;
+}
+
+.color-flash-heal {
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.55) 0%, rgba(16, 185, 129, 0.15) 40%, rgba(0, 0, 0, 0) 70%);
+}
+
+.color-flash-poison {
+  background: radial-gradient(circle at center, rgba(168, 85, 247, 0.55) 0%, rgba(168, 85, 247, 0.15) 40%, rgba(0, 0, 0, 0) 70%);
+}
+
+@keyframes color-flash {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== Confetti (village wins) ===== */
+
+.confetti-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 66;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-overlay span {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall linear infinite;
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
+}
+
+/* ===== Wolves parade (wolves win) ===== */
+
+.wolves-parade {
+  position: fixed;
+  inset: 0;
+  z-index: 66;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.wolves-parade span {
+  position: absolute;
+  bottom: 8%;
+  font-size: 100px;
+  filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.9));
+  animation: wolves-walk linear infinite;
+}
+
+.wolves-parade span:nth-child(1) { animation-duration: 9s;  animation-delay: 0s;   font-size: 80px; }
+.wolves-parade span:nth-child(2) { animation-duration: 11s; animation-delay: -2s;  font-size: 110px; }
+.wolves-parade span:nth-child(3) { animation-duration: 10s; animation-delay: -5s;  font-size: 90px; }
+
+@keyframes wolves-walk {
+  0%   { transform: translateX(-20vw); }
+  100% { transform: translateX(120vw); }
+}

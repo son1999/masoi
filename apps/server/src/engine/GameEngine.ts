@@ -145,7 +145,24 @@ export class GameEngine {
     if (targetId !== null && !this.isAliveTarget(targetId)) return { ok: false, error: 'Mục tiêu không hợp lệ' };
     this.votes[voterId] = targetId;
     this.publishState();
+    this.tryAutoSkipDayVote();
     return { ok: true };
+  }
+
+  // Vote semantics:
+  //   missing key  → chưa quyết định
+  //   value null   → đồng ý bỏ qua (skip)
+  //   value string → vote treo cổ targetId
+  // Khi 100% người sống đều skip → cắt pha ngay, không treo ai.
+  private tryAutoSkipDayVote() {
+    if (this.phase !== 'day_main') return;
+    const alive = this.players.filter((p) => p.alive);
+    if (alive.length === 0) return;
+    const allSkipped = alive.every((p) => p.id in this.votes && this.votes[p.id] === null);
+    if (!allSkipped) return;
+    if (this.phaseTimer) clearTimeout(this.phaseTimer);
+    this.phaseTimer = null;
+    this.resolveDayVoteAndAdvanceToNight();
   }
 
   destroy() {
@@ -282,7 +299,15 @@ export class GameEngine {
         this.appendLog('vote', `${p.nickname} đã bị treo cổ (${topCount} phiếu)`);
       }
     } else {
-      this.appendLog('vote', 'Không treo cổ ai (hòa phiếu hoặc không bỏ phiếu)');
+      const alive = this.players.filter((p) => p.alive);
+      const allSkipped =
+        alive.length > 0 && alive.every((p) => p.id in this.votes && this.votes[p.id] === null);
+      this.appendLog(
+        'vote',
+        allSkipped
+          ? 'Tất cả đồng ý bỏ qua — không treo cổ ai'
+          : 'Không treo cổ ai (hòa phiếu hoặc không bỏ phiếu)',
+      );
     }
 
     const winner = this.checkWinner();

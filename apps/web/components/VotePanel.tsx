@@ -12,23 +12,35 @@ interface Props {
 
 export default function VotePanel({ socket, state, myPlayerId }: Props) {
   const me = state.players.find((p) => p.id === myPlayerId);
-  const myVote = state.vote?.votes[myPlayerId] ?? undefined;
+  const votes = state.vote?.votes ?? {};
+  const hasVoted = myPlayerId in votes;
+  const myVote = hasVoted ? votes[myPlayerId] : undefined;
+  const mySkipped = hasVoted && myVote === null;
+  const myTarget = typeof myVote === 'string' ? myVote : null;
+
+  const aliveIds = useMemo(
+    () => new Set(state.players.filter((p) => p.alive).map((p) => p.id)),
+    [state.players],
+  );
+  const aliveCount = aliveIds.size;
+  const skipCount = useMemo(
+    () =>
+      Object.entries(votes).filter(([id, v]) => v === null && aliveIds.has(id)).length,
+    [votes, aliveIds],
+  );
 
   const tally = useMemo(() => {
     const t: Record<string, string[]> = {};
-    if (!state.vote) return t;
-    for (const [voter, target] of Object.entries(state.vote.votes)) {
+    for (const [voter, target] of Object.entries(votes)) {
       if (target) {
         if (!t[target]) t[target] = [];
         t[target]!.push(voter);
       }
     }
     return t;
-  }, [state.vote]);
+  }, [votes]);
 
-  if (!me?.alive) {
-    return null;
-  }
+  if (!me?.alive) return null;
 
   function vote(targetId: string | null) {
     if (!socket) return;
@@ -37,13 +49,19 @@ export default function VotePanel({ socket, state, myPlayerId }: Props) {
 
   return (
     <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-4">
-      <div className="mb-3 text-sm font-semibold">⚖️ Bỏ phiếu treo cổ</div>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-sm font-semibold">⚖️ Bỏ phiếu treo cổ</div>
+        <div className="text-xs text-neutral-400">
+          🤝 Bỏ qua: <span className="font-mono text-emerald-300">{skipCount}/{aliveCount}</span>
+        </div>
+      </div>
+
       <ul className="space-y-1.5">
         {state.players
           .filter((p) => p.alive && p.id !== myPlayerId)
           .map((p) => {
             const voters = tally[p.id] ?? [];
-            const isMyVote = myVote === p.id;
+            const isMyVote = myTarget === p.id;
             return (
               <li
                 key={p.id}
@@ -63,14 +81,28 @@ export default function VotePanel({ socket, state, myPlayerId }: Props) {
             );
           })}
       </ul>
-      {myVote && (
-        <button
-          type="button"
-          onClick={() => vote(null)}
-          className="mt-3 w-full rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-800 transition"
-        >
-          Hủy phiếu
-        </button>
+
+      <button
+        type="button"
+        onClick={() => vote(null)}
+        disabled={mySkipped}
+        className={`mt-3 w-full rounded-md border px-3 py-2 text-sm font-medium transition ${
+          mySkipped
+            ? 'border-emerald-500 bg-emerald-500/15 text-emerald-200 cursor-default'
+            : 'border-emerald-600 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20'
+        }`}
+      >
+        {mySkipped ? '✓ Bạn đã đồng ý bỏ qua' : '🤝 Đồng ý bỏ qua (skip)'}
+      </button>
+
+      {!hasVoted && (
+        <p className="mt-2 text-center text-xs text-neutral-500">Chưa quyết định</p>
+      )}
+
+      {skipCount === aliveCount && aliveCount > 0 && (
+        <p className="mt-2 text-center text-xs text-emerald-400 animate-pulse">
+          ✨ Tất cả đã đồng ý — đang bỏ qua…
+        </p>
       )}
     </div>
   );

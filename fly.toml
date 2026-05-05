@@ -1,0 +1,19 @@
+# Fly.io config cho server. Đổi `app` thành tên duy nhất bạn chọn (slug).
+app = "ma-soi-server"
+primary_region = "sin"  # Singapore — gần VN nhất
+
+[build]
+  dockerfile = "apps/server/Dockerfile"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "off"     # giữ chạy 24/7 (1 VM nhỏ vẫn trong free tier)
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

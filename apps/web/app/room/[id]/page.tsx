@@ -11,6 +11,8 @@ import NightActionPanel from '@/components/NightActionPanel';
 import VotePanel from '@/components/VotePanel';
 import GameLog from '@/components/GameLog';
 import PhaseBackdrop from '@/components/PhaseBackdrop';
+import EffectsLayer from '@/components/EffectsLayer';
+import SoundToggle from '@/components/SoundToggle';
 import type {
   ChatMessage,
   GameStatePublic,
@@ -177,10 +179,12 @@ export default function RoomPage({ params }: PageProps) {
     );
   }
 
-  const inGame = !!gameState && gameState.phase !== 'lobby';
+  const ended = gameState?.phase === 'ended';
+  const inGame = !!gameState && gameState.phase !== 'lobby' && !ended;
   const isHost = myPlayerId === room.hostId;
   const canStart = isHost && !inGame && room.players.length >= MIN_PLAYERS_TO_START;
-  const playersWithGameStatus = inGame && gameState
+  const showGameStatus = inGame || ended;
+  const playersWithGameStatus = showGameStatus && gameState
     ? room.players.map((p) => ({
         ...p,
         gp: gameState.players.find((gp) => gp.id === p.id),
@@ -190,10 +194,13 @@ export default function RoomPage({ params }: PageProps) {
   return (
     <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-4 p-4 md:p-6">
       <PhaseBackdrop phase={gameState?.phase ?? null} />
+      <EffectsLayer gameState={gameState} lastNightResult={lastNightResult} />
       <header className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
         <div>
-          <h1 className="text-lg font-semibold">{inGame ? '🎮 Đang chơi' : 'Phòng chờ'}</h1>
-          {!inGame && (
+          <h1 className="text-lg font-semibold">
+            {inGame ? '🎮 Đang chơi' : ended ? '🏁 Ván đã kết thúc' : 'Phòng chờ'}
+          </h1>
+          {!inGame && !ended && (
             <button
               type="button"
               onClick={copyJoinCode}
@@ -205,6 +212,7 @@ export default function RoomPage({ params }: PageProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <SoundToggle />
           {canStart && (
             <button
               type="button"
@@ -212,7 +220,7 @@ export default function RoomPage({ params }: PageProps) {
               disabled={busy}
               className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-emerald-500 transition"
             >
-              ▶ Bắt đầu ván
+              {ended ? '🔄 Bắt đầu ván mới' : '▶ Bắt đầu ván'}
             </button>
           )}
           <button

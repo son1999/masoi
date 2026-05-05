@@ -10,6 +10,7 @@ import type {
   RoleId,
 } from '@ma-soi/shared';
 import type { GameSocket } from '@/lib/socket';
+import { sound, fxBus } from '@/lib/sound';
 
 interface Props {
   socket: GameSocket | null;
@@ -161,7 +162,11 @@ function ActionForm({ socket, state, myInfo, myPlayerId, lastResult }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => emitAction({ type: 'witch_heal' })}
+              onClick={() => {
+                sound.play('heal');
+                fxBus.emit('heal');
+                emitAction({ type: 'witch_heal' });
+              }}
               className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-emerald-500 transition"
             >
               🧪 Cứu {killed.nickname}
@@ -172,7 +177,11 @@ function ActionForm({ socket, state, myInfo, myPlayerId, lastResult }: Props) {
             <PoisonPicker
               targets={aliveOthers}
               busy={busy}
-              onConfirm={(targetId) => emitAction({ type: 'witch_poison', targetId })}
+              onConfirm={(targetId) => {
+                sound.play('poison');
+                fxBus.emit('poison');
+                emitAction({ type: 'witch_poison', targetId });
+              }}
             />
           )}
 

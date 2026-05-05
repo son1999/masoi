@@ -32,6 +32,13 @@ export default function PhaseHeader({ phase, night, phaseEndsAt }: Props) {
   const meta = PHASE_LABELS[phase];
   const remaining = phaseEndsAt ? Math.max(0, Math.ceil((phaseEndsAt - now) / 1000)) : null;
   const lowTime = remaining !== null && remaining <= 10;
+  const criticalTime = remaining !== null && remaining <= 5;
+
+  const timerClass = criticalTime
+    ? 'shake-soft text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]'
+    : lowTime
+    ? 'animate-pulse text-rose-400'
+    : 'text-neutral-200';
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
@@ -42,9 +49,7 @@ export default function PhaseHeader({ phase, night, phaseEndsAt }: Props) {
         </div>
       </div>
       {remaining !== null && (
-        <div
-          className={`font-mono text-2xl font-bold ${lowTime ? 'animate-pulse text-rose-400' : 'text-neutral-200'}`}
-        >
+        <div className={`font-mono text-2xl font-bold ${timerClass}`}>
           {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
         </div>
       )}
