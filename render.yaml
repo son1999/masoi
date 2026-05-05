@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ma-soi-server
+    runtime: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true   # Render tự sinh chuỗi random an toàn
+      - key: WEB_ORIGIN
+        sync: false           # set thủ công sau khi có Vercel domain
