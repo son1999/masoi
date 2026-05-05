@@ -169,6 +169,35 @@ export class GameEngine {
     if (this.phaseTimer) clearTimeout(this.phaseTimer);
   }
 
+  // Gọi khi 1 player thực sự rời phòng giữa ván (Rời phòng + đóng hết tab).
+  // Đánh dấu chết, gỡ vote/action đang treo, kiểm tra lại winner / advance phase.
+  handlePlayerLeft(playerId: string) {
+    if (this.ended || this.phase === 'lobby') return;
+    const player = this.players.find((p) => p.id === playerId);
+    if (!player || !player.alive) return;
+
+    player.alive = false;
+    this.appendLog('death', `${player.nickname} đã rời phòng`);
+
+    delete this.votes[playerId];
+    delete this.night_state.wolfVotes[playerId];
+    this.recomputeWolfTarget();
+
+    const winner = this.checkWinner();
+    if (winner) {
+      this.endGame(winner);
+      return;
+    }
+
+    this.publishState();
+
+    if (this.phase === 'day_main') {
+      this.tryAutoSkipDayVote();
+    } else if (this.phase.startsWith('night_')) {
+      this.tryAdvancePhase();
+    }
+  }
+
   // ===== Internal phase machine =====
 
   private advanceToNextNightPhase() {
@@ -243,6 +272,11 @@ export class GameEngine {
   }
 
   private tryAdvancePhase() {
+    // Pha hiện tại không còn actor sống (vd actor đã rời/chết) → bỏ qua luôn.
+    if (this.phase.startsWith('night_') && !this.phaseHasActor(this.phase)) {
+      this.advanceToNextNightPhase();
+      return;
+    }
     if (this.phase === 'night_guard' && this.night_state.guardProtectedId) {
       this.advanceToNextNightPhase();
     } else if (this.phase === 'night_wolves' && this.allWolvesVotedSame()) {

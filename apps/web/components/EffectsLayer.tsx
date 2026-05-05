@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { GameStatePublic, NightActionResult } from '@ma-soi/shared';
+import { PHASE_DURATIONS_MS } from '@ma-soi/shared';
 import { sound, fxBus, type FxName } from '@/lib/sound';
 import DeathFlash from './effects/DeathFlash';
 import SparkleBurst from './effects/SparkleBurst';
@@ -53,9 +54,9 @@ export default function EffectsLayer({ gameState, lastNightResult }: Props) {
     const prev = prevPhaseRef.current;
     if (phase === prev) return;
     prevPhaseRef.current = phase;
-    if (!phase || prev === null) return; // skip initial mount
+    if (!phase) return;
 
-    // Ván mới bắt đầu (ended → đêm/ngày): server reset log + vote nên client cũng reset trackers.
+    // Ván mới bắt đầu (ended → đêm/ngày): reset trackers để log/vote cũ không trigger sound spurious.
     if (prev === 'ended' && phase !== 'ended' && phase !== 'lobby') {
       lastLogIdRef.current = null;
       initLogRef.current = false;
@@ -63,7 +64,15 @@ export default function EffectsLayer({ gameState, lastNightResult }: Props) {
       lastSeerKeyRef.current = null;
     }
 
-    const wasNight = prev.startsWith('night_');
+    // Phân biệt "vừa enter phase mới" (server đẩy state) vs "rejoin giữa phase".
+    // phaseEndsAt còn > 85% duration full → vừa start; < 85% → join giữa chừng, đừng phát ambient.
+    const fullDur = PHASE_DURATIONS_MS[phase as keyof typeof PHASE_DURATIONS_MS];
+    const endsAt = gameState?.phaseEndsAt ?? null;
+    const justStarted =
+      !fullDur || !endsAt || endsAt - Date.now() > fullDur * 0.85;
+    if (!justStarted) return;
+
+    const wasNight = prev !== null && prev.startsWith('night_');
     const isNight = phase.startsWith('night_');
 
     if (!wasNight && isNight) {
@@ -76,7 +85,7 @@ export default function EffectsLayer({ gameState, lastNightResult }: Props) {
     if (phase === 'night_wolves') {
       sound.play('phase_bell', { volume: 0.5 });
     }
-  }, [gameState?.phase]);
+  }, [gameState?.phase, gameState?.phaseEndsAt]);
 
   // 4) New log entries → death scream + win fanfare
   useEffect(() => {

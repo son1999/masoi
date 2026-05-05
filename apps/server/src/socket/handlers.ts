@@ -27,6 +27,19 @@ import { MIN_PLAYERS_TO_START } from '@ma-soi/shared';
 type IO = Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>;
 type IOSocket = Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>;
 
+const DISCONNECT_GRACE_MS = 30_000;
+// roomId:playerId → timeout đang đợi mark-as-left sau khi mất hết socket.
+const pendingLeaves = new Map<string, NodeJS.Timeout>();
+
+function cancelPendingLeave(roomId: string, playerId: string) {
+  const key = `${roomId}:${playerId}`;
+  const t = pendingLeaves.get(key);
+  if (t) {
+    clearTimeout(t);
+    pendingLeaves.delete(key);
+  }
+}
+
 export function registerHandlers(io: IO, store: RoomStore) {
   io.on('connection', async (socket) => {
     const { playerId, nickname } = socket.data;
@@ -86,6 +99,7 @@ export function registerHandlers(io: IO, store: RoomStore) {
 
         socket.data.roomId = updated.id;
         await socket.join(updated.id);
+        cancelPendingLeave(updated.id, playerId);
         ack({ ok: true, data: updated });
       } catch (err) {
         ack({ ok: false, error: errMessage(err) });
@@ -108,6 +122,7 @@ export function registerHandlers(io: IO, store: RoomStore) {
             io.to(room.id).emit('room:player_online_changed', playerId, true);
           }
         }
+        cancelPendingLeave(room.id, playerId);
         ack({ ok: true, data: room });
         await sendCurrentGameSnapshotToSocket(io, room.id, playerId);
       } catch (err) {
@@ -250,6 +265,28 @@ export function registerHandlers(io: IO, store: RoomStore) {
       if (updated) {
         io.to(roomId).emit('room:player_online_changed', playerId, false);
       }
+
+      // Schedule "treat as left" sau grace period nếu không reconnect.
+      const key = `${roomId}:${playerId}`;
+      cancelPendingLeave(roomId, playerId);
+      const timer = setTimeout(async () => {
+        pendingLeaves.delete(key);
+        const stillGone = (await countOtherUserSockets(io, roomId, playerId)) === 0;
+        if (!stillGone) return;
+        const room = await store.getById(roomId);
+        if (!room || !room.players.some((p) => p.id === playerId)) return;
+
+        const removed = await store.removePlayer(roomId, playerId);
+        if (removed) {
+          io.to(roomId).emit('room:player_left', playerId);
+          io.to(roomId).emit('room:state', removed);
+          const engine = getEngine(roomId);
+          if (engine) engine.handlePlayerLeft(playerId);
+        } else {
+          destroyGameForRoom(roomId);
+        }
+      }, DISCONNECT_GRACE_MS);
+      pendingLeaves.set(key, timer);
     });
   });
 }
@@ -269,6 +306,8 @@ async function leaveCurrentRoom(io: IO, socket: IOSocket, store: RoomStore) {
   if (updated) {
     io.to(roomId).emit('room:player_left', playerId);
     io.to(roomId).emit('room:state', updated);
+    const engine = getEngine(roomId);
+    if (engine) engine.handlePlayerLeft(playerId);
   } else {
     destroyGameForRoom(roomId);
   }
