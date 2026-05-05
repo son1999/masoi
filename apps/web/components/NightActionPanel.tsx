@@ -89,24 +89,70 @@ function ActionForm({ socket, state, myInfo, myPlayerId, lastResult }: Props) {
   }
 
   if (myInfo.role === 'werewolf') {
-    const pendingTarget =
-      lastResult?.type === 'wolf_ack' ? lastResult.pendingKillTargetId : null;
+    const ack = lastResult?.type === 'wolf_ack' ? lastResult : null;
+    const pendingTarget = ack?.pendingKillTargetId ?? null;
+    const skipVotes = ack?.skipVotes ?? 0;
+    const decided = ack?.decidedVotes ?? 0;
+    const totalWolves = ack?.totalWolves ?? 0;
+    const targetName = pendingTarget
+      ? state.players.find((p) => p.id === pendingTarget)?.nickname ?? '?'
+      : null;
+
     return (
-      <ActionTargets
-        title="🐺 Chọn người để cắn đêm nay"
-        subtitle={
-          pendingTarget
-            ? `Mục tiêu hiện tại của bầy: ${state.players.find((p) => p.id === pendingTarget)?.nickname ?? '?'}`
-            : 'Cả bầy phải đồng ý cùng 1 mục tiêu'
-        }
-        targets={aliveOthers}
-        selected={selected}
-        onSelect={setSelected}
-        confirmLabel="Cắn"
-        onConfirm={() => selected && emitAction({ type: 'wolf_kill', targetId: selected })}
-        busy={busy}
-        error={error}
-      />
+      <div className="space-y-3">
+        <div>
+          <div className="text-sm font-semibold">🐺 Chọn người để cắn đêm nay</div>
+          <div className="mt-1 text-xs text-neutral-400">
+            {targetName
+              ? `Mục tiêu hiện tại của bầy: ${targetName}`
+              : skipVotes > 0
+              ? 'Bầy đang nghiêng về bỏ qua đêm nay'
+              : 'Bầy phải đồng thuận — đa số quyết định'}
+            {totalWolves > 0 && (
+              <span className="ml-2 text-neutral-500">
+                · {decided}/{totalWolves} đã quyết · 🤝 {skipVotes} bỏ qua
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {aliveOthers.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setSelected(t.id)}
+              className={`rounded-md border px-3 py-2 text-sm transition ${
+                selected === t.id
+                  ? 'border-rose-500 bg-rose-500/10 text-rose-200'
+                  : 'border-neutral-700 bg-neutral-950 hover:border-neutral-600'
+              }`}
+            >
+              {t.nickname}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => selected && emitAction({ type: 'wolf_kill', targetId: selected })}
+          disabled={!selected || busy}
+          className="w-full rounded-md bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-rose-500 transition"
+        >
+          🩸 Cắn
+        </button>
+
+        <button
+          type="button"
+          onClick={() => emitAction({ type: 'wolf_skip' })}
+          disabled={busy}
+          className="w-full rounded-md border border-emerald-600 bg-emerald-600/10 px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-600/20 disabled:opacity-40 transition"
+        >
+          🤝 Bỏ qua đêm nay (không cắn)
+        </button>
+
+        {error && <p className="text-xs text-rose-400">{error}</p>}
+      </div>
     );
   }
 

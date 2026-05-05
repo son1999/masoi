@@ -78,13 +78,17 @@ export class GameEngine {
         if (!this.isAliveTarget(action.targetId)) return { ok: false, error: 'Mục tiêu không hợp lệ' };
         this.night_state.wolfVotes[actor.id] = action.targetId;
         this.recomputeWolfTarget();
-        for (const w of this.aliveWolves()) {
-          this.cb.onNightResult(w.id, {
-            type: 'wolf_ack',
-            pendingKillTargetId: this.night_state.wolfKillTargetId,
-          });
-        }
-        if (this.allWolvesVotedSame()) this.tryAdvancePhase();
+        this.broadcastWolfAck();
+        if (this.allWolvesDecided()) this.tryAdvancePhase();
+        return { ok: true };
+
+      case 'wolf_skip':
+        if (this.phase !== 'night_wolves') return { ok: false, error: 'Không phải pha sói' };
+        if (actor.role !== 'werewolf') return { ok: false, error: 'Bạn không phải Sói' };
+        this.night_state.wolfVotes[actor.id] = null;
+        this.recomputeWolfTarget();
+        this.broadcastWolfAck();
+        if (this.allWolvesDecided()) this.tryAdvancePhase();
         return { ok: true };
 
       case 'seer_check': {
@@ -279,7 +283,7 @@ export class GameEngine {
     }
     if (this.phase === 'night_guard' && this.night_state.guardProtectedId) {
       this.advanceToNextNightPhase();
-    } else if (this.phase === 'night_wolves' && this.allWolvesVotedSame()) {
+    } else if (this.phase === 'night_wolves' && this.allWolvesDecided()) {
       this.advanceToNextNightPhase();
     } else if (this.phase === 'night_seer' && this.night_state.seerCheckedId) {
       this.advanceToNextNightPhase();
@@ -406,18 +410,18 @@ export class GameEngine {
     return this.players.filter((p) => p.role === 'werewolf' && p.alive);
   }
 
-  private allWolvesVotedSame(): boolean {
+  private allWolvesDecided(): boolean {
     const wolves = this.aliveWolves();
     if (wolves.length === 0) return false;
-    const targets = wolves.map((w) => this.night_state.wolfVotes[w.id]).filter(Boolean) as string[];
-    if (targets.length !== wolves.length) return false;
-    return targets.every((t) => t === targets[0]);
+    return wolves.every((w) => w.id in this.night_state.wolfVotes);
   }
 
   private recomputeWolfTarget() {
     const tally: Record<string, number> = {};
+    let skipCount = 0;
     for (const t of Object.values(this.night_state.wolfVotes)) {
-      tally[t] = (tally[t] ?? 0) + 1;
+      if (t === null) skipCount++;
+      else tally[t] = (tally[t] ?? 0) + 1;
     }
     let topId: string | null = null;
     let topCount = 0;
@@ -427,7 +431,29 @@ export class GameEngine {
         topId = id;
       }
     }
-    this.night_state.wolfKillTargetId = topId;
+    // Skip thắng nếu phiếu skip ≥ phiếu cắn cao nhất (ưu tiên skip khi hòa).
+    this.night_state.wolfKillTargetId = skipCount >= topCount ? null : topId;
+  }
+
+  private broadcastWolfAck() {
+    const wolves = this.aliveWolves();
+    let skipVotes = 0;
+    let decidedVotes = 0;
+    for (const w of wolves) {
+      if (w.id in this.night_state.wolfVotes) {
+        decidedVotes++;
+        if (this.night_state.wolfVotes[w.id] === null) skipVotes++;
+      }
+    }
+    for (const w of wolves) {
+      this.cb.onNightResult(w.id, {
+        type: 'wolf_ack',
+        pendingKillTargetId: this.night_state.wolfKillTargetId,
+        skipVotes,
+        totalWolves: wolves.length,
+        decidedVotes,
+      });
+    }
   }
 
   private phaseHasActor(phase: GamePhase): boolean {

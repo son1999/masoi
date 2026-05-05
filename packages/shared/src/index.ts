@@ -81,6 +81,7 @@ export interface MyGameInfo {
 export type NightActionRequest =
   | { type: 'guard_protect'; targetId: string }
   | { type: 'wolf_kill'; targetId: string }
+  | { type: 'wolf_skip' }
   | { type: 'seer_check'; targetId: string }
   | { type: 'witch_heal' }
   | { type: 'witch_poison'; targetId: string }
@@ -90,7 +91,13 @@ export type NightActionResult =
   | { type: 'seer_result'; targetId: string; targetRole: RoleId }
   | { type: 'witch_view'; killedTargetId: string | null; canHeal: boolean; canPoison: boolean }
   | { type: 'guard_ack' }
-  | { type: 'wolf_ack'; pendingKillTargetId: string | null }
+  | {
+      type: 'wolf_ack';
+      pendingKillTargetId: string | null;
+      skipVotes: number;
+      totalWolves: number;
+      decidedVotes: number;
+    }
   | { type: 'no_op' };
 
 // === Result envelope ===

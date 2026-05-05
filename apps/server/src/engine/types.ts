@@ -16,7 +16,8 @@ export interface NightState {
   guardProtectedId: string | null;
   guardLastNightProtectedId: string | null;
   wolfKillTargetId: string | null;
-  wolfVotes: Record<string, string>;
+  // null = sói đó chọn bỏ qua (không cắn ai)
+  wolfVotes: Record<string, string | null>;
   seerCheckedId: string | null;
   witchHealUsed: boolean;
   witchPoisonTargetId: string | null;
