@@ -7,10 +7,16 @@
     "dev:server": "pnpm --filter @ma-soi/server dev",
     "dev:web": "pnpm --filter @ma-soi/web dev",
     "build": "pnpm -r build",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "pnpm@9.15.9"
+  "packageManager": "pnpm@9.15.9",
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "vitest": "^4.1.5"
+  }
 }

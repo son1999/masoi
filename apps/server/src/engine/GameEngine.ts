@@ -72,15 +72,18 @@ export class GameEngine {
         this.tryAdvancePhase();
         return { ok: true };
 
-      case 'wolf_kill':
+      case 'wolf_kill': {
         if (this.phase !== 'night_wolves') return { ok: false, error: 'Không phải pha sói' };
         if (actor.role !== 'werewolf') return { ok: false, error: 'Bạn không phải Sói' };
         if (!this.isAliveTarget(action.targetId)) return { ok: false, error: 'Mục tiêu không hợp lệ' };
+        const wolfTarget = this.players.find((p) => p.id === action.targetId)!;
+        if (wolfTarget.role === 'werewolf') return { ok: false, error: 'Không thể cắn đồng đội Sói' };
         this.night_state.wolfVotes[actor.id] = action.targetId;
         this.recomputeWolfTarget();
         this.broadcastWolfAck();
         if (this.allWolvesDecided()) this.tryAdvancePhase();
         return { ok: true };
+      }
 
       case 'wolf_skip':
         if (this.phase !== 'night_wolves') return { ok: false, error: 'Không phải pha sói' };
@@ -125,6 +128,7 @@ export class GameEngine {
         if (actor.role !== 'witch') return { ok: false, error: 'Bạn không phải Phù thủy' };
         if (!this.witchPotions.poison) return { ok: false, error: 'Bình độc đã dùng' };
         if (!this.isAliveTarget(action.targetId)) return { ok: false, error: 'Mục tiêu không hợp lệ' };
+        if (action.targetId === actor.id) return { ok: false, error: 'Không thể tự bỏ độc' };
         this.night_state.witchPoisonTargetId = action.targetId;
         this.witchPotions.poison = false;
         this.night_state.witchActed = true;
@@ -425,14 +429,22 @@ export class GameEngine {
     }
     let topId: string | null = null;
     let topCount = 0;
+    let tied = false;
     for (const [id, count] of Object.entries(tally)) {
       if (count > topCount) {
         topCount = count;
         topId = id;
+        tied = false;
+      } else if (count === topCount) {
+        tied = true;
       }
     }
-    // Skip thắng nếu phiếu skip ≥ phiếu cắn cao nhất (ưu tiên skip khi hòa).
-    this.night_state.wolfKillTargetId = skipCount >= topCount ? null : topId;
+    // Skip thắng nếu phiếu skip ≥ phiếu cắn cao nhất; hoặc các target hòa nhau ở top → không cắn ai.
+    if (skipCount >= topCount || tied) {
+      this.night_state.wolfKillTargetId = null;
+    } else {
+      this.night_state.wolfKillTargetId = topId;
+    }
   }
 
   private broadcastWolfAck() {

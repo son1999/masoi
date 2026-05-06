@@ -18,7 +18,11 @@ export class MemoryRoomStore implements RoomStore {
 
   async create(host: { id: string; nickname: string }): Promise<RoomState> {
     let joinCode = generateJoinCode();
-    while (this.codeIndex.has(joinCode)) joinCode = generateJoinCode();
+    let attempts = 0;
+    while (this.codeIndex.has(joinCode)) {
+      if (++attempts > 1000) throw new Error('Không thể tạo joinCode duy nhất');
+      joinCode = generateJoinCode();
+    }
 
     const id = randomUUID();
     const now = Date.now();
